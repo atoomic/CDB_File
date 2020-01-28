@@ -477,11 +477,17 @@ cdb_FETCH(this, k)
 	ST(0) = sv_newmortal();
 	if (found) {
 		U32 dlen;
+
 		SvUPGRADE(ST(0), SVt_PV);
 		dlen = cdb_datalen(this);
 
 		(void)SvPOK_only(ST(0));
-		SvGROW(ST(0), dlen + 1); SvCUR_set(ST(0),  dlen);
+		SvGROW(ST(0), dlen + 2);
+		SvCUR_set(ST(0),  dlen);
+
+		SvIsCOW_on(ST(0));
+		CowREFCNT(ST(0)) = 1;
+
 		if (cdb_read(this, SvPVX(ST(0)), dlen, cdb_datapos(this)) == -1) readerror();
 		SvPV(ST(0), PL_na)[dlen] = '\0';
 	}
@@ -510,7 +516,12 @@ cdb_fetch_all(this)
 
 		keyvalue = newSVpvn("", 0);
 		dlen = cdb_datalen(this);
-		SvGROW(keyvalue, dlen + 1); SvCUR_set(keyvalue,  dlen);
+		SvGROW(keyvalue, dlen + 2);
+		SvCUR_set(keyvalue,  dlen);
+
+		SvIsCOW_on(keyvalue);
+		CowREFCNT(keyvalue) = 1;
+
 		if (cdb_read(this, SvPVX(keyvalue), dlen, cdb_datapos(this)) == -1) readerror();
 		SvPV(keyvalue, PL_na)[dlen] = '\0';
 		if (! hv_store_ent(RETVAL, this->curkey, keyvalue, 0)) {
